@@ -29,7 +29,6 @@
 let
   isDarwin = xml.stdenv.hostPlatform.isDarwin or false;
   isWindows = xml.stdenv.hostPlatform.isWindows or false;
-  version = xml.version;
 
   # Keep libxml2's stock outputs (bin/dev/out) and its install — its multiple-
   # outputs setup hook needs them and fighting it isn't worth it. We just build
@@ -65,7 +64,7 @@ let
 
       # Dispatcher → xmllintMain / xmlcatalog_main by basename(argv[0]).
       cp ${./dispatcher.c} mc/dispatcher.c
-      $CC -O2 -DMC_VER='"xmllint ${version}"' -c -o mc/dispatcher.o mc/dispatcher.c
+      $CC -O2 -c -o mc/dispatcher.o mc/dispatcher.c
 
       # Final link: the two frontends' kept objects + the renamed xmlcatalog
       # object + the single libxml2 static archive, once. On mingw this manual
