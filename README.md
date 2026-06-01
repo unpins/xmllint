@@ -1,0 +1,58 @@
+# xmllint
+
+Standalone build of the [libxml2](https://gitlab.gnome.org/GNOME/libxml2) command-line tools — `xmllint` and `xmlcatalog`.
+
+[![CI](https://github.com/unpins/xmllint/actions/workflows/xmllint.yml/badge.svg)](https://github.com/unpins/xmllint/actions)
+![Linux](https://img.shields.io/badge/Linux-✓-success?logo=linux&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-✓-success?logo=apple&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-✓-success?logo=windows&logoColor=white)
+
+Part of the [unpins](https://unpins.org) project — native single-binary builds with no third-party runtime dependencies.
+
+`xmllint` parses, validates (DTD / RelaxNG / Schema), reformats and queries (XPath) XML; `xmlcatalog` manages XML/SGML catalogs. Both share one binary with `libxml2` linked in statically.
+
+## Installation
+
+Install with [unpin](https://github.com/unpins/unpin):
+
+```bash
+unpin xmllint
+```
+
+This installs the `xmllint` binary and recreates the `xmlcatalog` command beside it.
+
+Or run without installing:
+
+```bash
+unpin run xmllint --version
+```
+
+## Build locally
+
+```bash
+nix build github:unpins/xmllint
+./result/bin/xmllint --version
+```
+
+Or run directly:
+
+```bash
+nix run github:unpins/xmllint -- --noout --schema schema.xsd doc.xml
+```
+
+The first invocation will offer to add the [unpins.cachix.org](https://unpins.cachix.org) substituter so most pulls come pre-built.
+
+## Man pages
+
+`xmllint.1` and `xmlcatalog.1` are embedded in the binary — read with `unpin man xmllint` / `unpin man xmlcatalog`.
+
+## Manual download
+
+The [Releases](https://github.com/unpins/xmllint/releases) page has standalone binaries for manual download.
+
+## Build notes
+
+- **Multicall:** one binary dispatches on `argv[0]` — `xmllint` (canonical) and `xmlcatalog`. `libxml2` is linked in statically.
+- **Man pages:** generated from libxml2's DocBook sources (nixpkgs ships none) and embedded on every platform.
+- **Windows:** `mingw` cross, single `.exe`, no companion DLLs.
+- **No upstream features disabled** on any platform.
