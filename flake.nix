@@ -16,13 +16,14 @@
   #
   # Man pages: libxml2 ships xmllint/xmlcatalog man as DocBook XML
   # (doc/<tool>.xml) that nixpkgs never builds (no docbook toolchain). Generate
-  # both once on the build host (OS-independent text) and embed the same bytes
-  # on every target — natively via multicall's install, on Windows via
-  # winManRoot (the mingw cross can't run the generator either).
+  # both on the build host (OS-independent text) and embed the same bytes on
+  # every target — multicall.nix installs them into the binary's share/man on
+  # EVERY target (windows included, since the generator is a buildPackages
+  # nativeBuildInput that runs on the x86_64-linux runner), so each build
+  # harvests its OWN man. No graft.
   outputs = { self, unpins-lib }:
     let
       ulib = unpins-lib.lib;
-      pkgsX = unpins-lib.inputs.nixpkgs.legacyPackages.x86_64-linux;
       # Generate the two man pages from libxml2's DocBook sources. Built with a
       # build-host (`buildPackages`) toolchain so it is NATIVE to whatever runner
       # builds each target — a hardcoded x86_64-linux man derivation would make
@@ -43,9 +44,6 @@
     ulib.mkStandaloneFlake {
       inherit self;
       name = "xmllint";
-      # winManRoot may stay x86_64-pinned: the windows binary always builds on an
-      # x86_64-linux runner (per the topology hardcoded-x86_64 trap note).
-      winManRoot = mkMan pkgsX;
       # Canonical binary == package name (xmllint); `xmllint --version` exits 0
       # and prints the libxml version banner. A non-empty smoke arg is required:
       # an empty array trips `set -u` empty-array expansion on the macOS runners'
