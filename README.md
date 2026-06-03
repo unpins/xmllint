@@ -11,21 +11,22 @@ Part of the [unpins](https://unpins.org) project — native single-binary builds
 
 `xmllint` parses, validates (DTD / RelaxNG / Schema), reformats and queries (XPath) XML; `xmlcatalog` manages XML/SGML catalogs. Both share one binary with `libxml2` linked in statically.
 
-## Installation
+## Usage
 
-Install with [unpin](https://github.com/unpins/unpin):
-
-```bash
-unpin xmllint
-```
-
-This installs the `xmllint` binary and recreates the `xmlcatalog` command beside it.
-
-Or run without installing:
+Run a program with [unpin](https://github.com/unpins/unpin):
 
 ```bash
-unpin run xmllint --version
+unpin xmllint --noout --schema s.xsd doc.xml
+unpin xmllint xmlcatalog --version
 ```
+
+To install the programs onto your PATH:
+
+```bash
+unpin install xmllint
+```
+
+`unpin install xmllint` also creates the `xmlcatalog` command.
 
 ## Build locally
 
