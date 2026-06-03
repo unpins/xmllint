@@ -1,6 +1,6 @@
 # xmllint
 
-Standalone build of the [libxml2](https://gitlab.gnome.org/GNOME/libxml2) command-line tools — `xmllint` and `xmlcatalog`.
+Standalone build of the [libxml2](https://gitlab.gnome.org/GNOME/libxml2) command-line programs — `xmllint` and `xmlcatalog`.
 
 [![CI](https://github.com/unpins/xmllint/actions/workflows/xmllint.yml/badge.svg)](https://github.com/unpins/xmllint/actions)
 ![Linux](https://img.shields.io/badge/Linux-✓-success?logo=linux&logoColor=white)
@@ -9,7 +9,7 @@ Standalone build of the [libxml2](https://gitlab.gnome.org/GNOME/libxml2) comman
 
 Part of the [unpins](https://unpins.org) project — native single-binary builds with no third-party runtime dependencies.
 
-`xmllint` parses, validates (DTD / RelaxNG / Schema), reformats and queries (XPath) XML; `xmlcatalog` manages XML/SGML catalogs. Both share one binary with `libxml2` linked in statically.
+Both programs share one binary with `libxml2` linked in statically.
 
 ## Usage
 
@@ -27,6 +27,13 @@ unpin install xmllint
 ```
 
 `unpin install xmllint` also creates the `xmlcatalog` command.
+
+## Programs
+
+| command | what it does |
+| --- | --- |
+| `xmllint` | parse, validate (DTD / RelaxNG / Schema), reformat and query (XPath) XML |
+| `xmlcatalog` | manage XML / SGML catalogs |
 
 ## Build locally
 
