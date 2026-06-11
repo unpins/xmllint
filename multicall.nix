@@ -12,10 +12,13 @@
 # xmllint-shell.o → `xmllintShell`, xmlcatalog-xmlcatalog.o → `main`. So there
 # is nothing to disambiguate except xmlcatalog's `main`: rename it to
 # `xmlcatalog_main` (objcopy --redefine-sym) and drop xmllint's `main` wrapper
-# (lintmain.o) entirely — the dispatcher calls xmllintMain directly. The whole
-# library is the single static archive `.libs/libxml2.a`, linked once; building
-# it ourselves also sidesteps the darwin libtool dynamic-companion trap (the
-# stock frontends link libxml2.2.dylib on pkgsStatic-darwin).
+# (lintmain.o) entirely. The dispatch front-end is the shared
+# `lib.multicallDispatcherC`; it calls each applet as `<applet>_main`, so
+# xmlcatalog_main matches directly and `xmllint_shim.c` adapts xmllintMain's
+# wider signature to `xmllint_main`. The whole library is the single static
+# archive `.libs/libxml2.a`, linked once; building it ourselves also sidesteps
+# the darwin libtool dynamic-companion trap (the stock frontends link
+# libxml2.2.dylib on pkgsStatic-darwin).
 #
 # Man pages are generated once on the build host from the DocBook sources
 # (see flake.nix) and copied in; nixpkgs builds no man for libxml2.
@@ -62,9 +65,19 @@ let
       printf '%smain %sxmlcatalog_main\n' "$up" "$up" > mc/xmlcatalog.redef
       $OBJCOPY --redefine-syms=mc/xmlcatalog.redef mc/xmlcatalog.o
 
-      # Dispatcher → xmllintMain / xmlcatalog_main by basename(argv[0]).
-      cp ${./dispatcher.c} mc/dispatcher.c
-      $CC -O2 -c -o mc/dispatcher.o mc/dispatcher.c
+      # Multicall dispatcher via the shared nix-lib generator — one contract for
+      # the whole catalog (argv[0] alias path + a `--unpin-program=NAME` selector
+      # on the bare binary). It calls each applet as `<applet>_main(int,char**)`:
+      # xmlcatalog_main is the renamed object above; xmllint_main is the shim
+      # (xmllintMain has a wider signature — see xmllint_shim.c). defaultApplet =
+      # "xmllint" makes a bare or renamed binary (CI's smoke.exe) default to
+      # xmllint, the canonical tool, so `<bin> --version` prints the libxml banner.
+      mkdir -p multicall
+      printf '%s\n' xmllint xmlcatalog > multicall/apps.list
+      cp ${./xmllint_shim.c} mc/xmllint_shim.c
+      $CC -O2 -c -o mc/xmllint_shim.o mc/xmllint_shim.c
+${lib.multicallDispatcherC { name = "xmllint"; defaultApplet = "xmllint"; }}
+      $CC -O2 -c -o mc/dispatcher.o multicall/dispatcher.c
 
       # Final link: the two frontends' kept objects + the renamed xmlcatalog
       # object + the single libxml2 static archive, once. On mingw this manual
@@ -79,7 +92,7 @@ let
       ${lib.optionalString isWindows ''MCF="-static -lbcrypt"''}
       ${lib.optionalString isDarwin ''MCF="-liconv"''}
       $CC -O2 \
-        mc/dispatcher.o xmllint-xmllint.o xmllint-shell.o mc/xmlcatalog.o \
+        mc/dispatcher.o mc/xmllint_shim.o xmllint-xmllint.o xmllint-shell.o mc/xmlcatalog.o \
         "$A" -lm $MCF \
         -o mc/xmllint
       [ -f mc/xmllint ] || mv mc/xmllint.exe mc/xmllint
