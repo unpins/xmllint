@@ -1,5 +1,5 @@
 {
-  description = "Standalone build of the libxml2 CLIs (xmllint + xmlcatalog)";
+  description = "the libxml2 CLIs (xmllint + xmlcatalog) as a single self-contained binary";
 
   nixConfig = {
     extra-substituters = [ "https://unpins.cachix.org" ];
