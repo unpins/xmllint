@@ -85,12 +85,12 @@ ${lib.multicallDispatcherC { name = "xmllint"; defaultApplet = "xmllint"; }}
       # thread model would import libmcfgthread-2.dll next to the .exe; link the
       # runtime fully static so every implicit -l resolves to its .a. Per-platform
       # external libs libxml2.a pulls (it links the .a directly, bypassing the
-      # .pc): Windows seeds dict.c from BCryptGenRandom → -lbcrypt; darwin's iconv
-      # lives in a separate libiconv (it's in libc on musl) → -liconv. Both come
-      # after the archive that references them.
+      # .pc): Windows seeds dict.c from BCryptGenRandom → -lbcrypt. (darwin's
+      # separate libiconv is supplied automatically by nix-lib's withDarwinIconv,
+      # which appends -liconv to NIX_LDFLAGS — after "$A" — for every darwin
+      # build.)
       MCF=""
       ${lib.optionalString isWindows ''MCF="-static -lbcrypt"''}
-      ${lib.optionalString isDarwin ''MCF="-liconv"''}
       $CC -O2 \
         mc/dispatcher.o mc/xmllint_shim.o xmllint-xmllint.o xmllint-shell.o mc/xmlcatalog.o \
         "$A" -lm $MCF \
