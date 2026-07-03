@@ -13,7 +13,7 @@
 # is nothing to disambiguate except xmlcatalog's `main`: rename it to
 # `xmlcatalog_main` (objcopy --redefine-sym) and drop xmllint's `main` wrapper
 # (lintmain.o) entirely. The dispatch front-end is the shared
-# `lib.multicallDispatcherC`; it calls each applet as `<applet>_main`, so
+# `lib.multicallTableDispatcherC`; it calls each applet as `<applet>_main`, so
 # xmlcatalog_main matches directly and `xmllint_shim.c` adapts xmllintMain's
 # wider signature to `xmllint_main`. The whole library is the single static
 # archive `.libs/libxml2.a`, linked once; building it ourselves also sidesteps
@@ -73,10 +73,14 @@ let
       # "xmllint" makes a bare or renamed binary (CI's smoke.exe) default to
       # xmllint, the canonical tool, so `<bin> --version` prints the libxml banner.
       mkdir -p multicall
-      printf '%s\n' xmllint xmlcatalog > multicall/apps.list
+      # multicallTableDispatcherC reads a TSV `multicall/applets.list` of
+      # `<tool>\t<sanitized-fn-prefix>` — it calls each applet as `<prefix>_main`.
+      # Both names are valid C identifiers (prefix == tool): xmllint_main is the
+      # shim, xmlcatalog_main the objcopy-renamed object.
+      printf 'xmllint\txmllint\nxmlcatalog\txmlcatalog\n' > multicall/applets.list
       cp ${./xmllint_shim.c} mc/xmllint_shim.c
       $CC -O2 -c -o mc/xmllint_shim.o mc/xmllint_shim.c
-${lib.multicallDispatcherC { name = "xmllint"; defaultApplet = "xmllint"; }}
+${lib.multicallTableDispatcherC { name = "xmllint"; defaultApplet = "xmllint"; }}
       $CC -O2 -c -o mc/dispatcher.o multicall/dispatcher.c
 
       # Final link: the two frontends' kept objects + the renamed xmlcatalog

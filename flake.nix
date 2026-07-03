@@ -50,9 +50,42 @@
       # bash 3.2.
       smoke = [ "--version" ];
       smokePattern = "libxml version 215";
+
+      # Build via the unpin-llvm engine + emit a bitcode multicall module. On
+      # BOTH Linux and darwin (mac-on-mac) the engine compiles pkgsStatic.libxml2
+      # (xmllint + xmlcatalog) to bitcode and the standalone self-folds them into
+      # one `xmllint` binary. ./multicall.nix's objcopy fold can't run on the
+      # engine's -flto bitcode objects, so it's windows-only now (windowsBuild).
+      # Pure C — no requires.cxx. pkgsAttr=libxml2 (name ≠ attr); the canonical
+      # bare smoke (`xmllint --version`) is itself an applet, so no defaultProgram
+      # needed. Man is restaged onto the engine build so withMan embeds it (nixpkgs
+      # builds no libxml2 man).
+      pkgsAttr = "libxml2";
+      engine = "unpin-llvm";
+      multicall = {
+        programs = [ { name = "xmllint"; } { name = "xmlcatalog"; } ];
+      };
+      # engine path (Linux + darwin): apps → bitcode → selfFold. Restage the
+      # generated man pages into the build's share/man (libxml2 multi-output: bin
+      # holds the CLIs).
       build = pkgs:
-        import ./multicall.nix { lib = pkgs.lib // ulib; }
-          { inherit pkgs; xmlMan = mkMan pkgs.buildPackages; xml = pkgs.pkgsStatic.libxml2; };
+        pkgs.pkgsStatic.libxml2.overrideAttrs (old: {
+          postInstall = (old.postInstall or "") + ''
+            mkdir -p "$bin/share/man/man1"
+            cp ${(mkMan pkgs.buildPackages)}/share/man/man1/xmllint.1    "$bin/share/man/man1/xmllint.1"
+            cp ${(mkMan pkgs.buildPackages)}/share/man/man1/xmlcatalog.1 "$bin/share/man/man1/xmlcatalog.1"
+          '';
+        } // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+          # mkStandaloneFlake's filterEnableStaticOnDarwin strips libxml2's Nix-level
+          # `--disable-shared` (so `--enable-static` can't become LDFLAGS=-static and
+          # break the libSystem probe). Push it back via the bash configureFlagsArray
+          # — invisible to that Nix-list filter — so libtool skips its darwin shared-
+          # library link probe, which otherwise mis-drives the engine linker
+          # (-platform_version → ld.lld, -soname → ld64.lld). Same dodge as jq/tmux/file.
+          preConfigure = (old.preConfigure or "") + ''
+            configureFlagsArray+=("--disable-shared")
+          '';
+        });
       windowsBuild = pkgs:
         import ./multicall.nix { lib = pkgs.lib // ulib; }
           { inherit pkgs; xmlMan = mkMan pkgs.buildPackages; xml = (ulib.mingwStaticCross pkgs).libxml2; };
