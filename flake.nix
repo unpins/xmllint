@@ -8,19 +8,17 @@
 
   inputs.unpins-lib.url = "github:unpins/nix-lib";
 
-  # libxml2 installs two CLIs (xmllint, xmlcatalog); ./multicall.nix post-links
-  # them into one `xmllint` dispatcher binary with `xmlcatalog` as an argv[0]
+  # libxml2 installs two CLIs (xmllint, xmlcatalog); nix-lib folds them into
+  # one `xmllint` dispatcher binary with `xmlcatalog` as an argv[0]
   # UNPIN_META alias (canonical binary == package name, per the unpins
   # convention — CI resolves result/bin/<name>). Windows goes through mingw —
   # libxml2 is portable autotools C that cross-compiles cleanly.
   #
   # Man pages: libxml2 ships xmllint/xmlcatalog man as DocBook XML
   # (doc/<tool>.xml) that nixpkgs never builds (no docbook toolchain). Generate
-  # both on the build host (OS-independent text) and embed the same bytes on
-  # every target — multicall.nix installs them into the binary's share/man on
-  # EVERY target (windows included, since the generator is a buildPackages
-  # nativeBuildInput that runs on the x86_64-linux runner), so each build
-  # harvests its OWN man. No graft.
+  # both on the build host (OS-independent text) and restage the same bytes into
+  # every target's share/man (windows included — the generator runs on the
+  # build host either way), so each build harvests its OWN man. No graft.
   outputs = { self, unpins-lib }:
     let
       ulib = unpins-lib.lib;
@@ -40,6 +38,13 @@
               ${bp.libxml2.src}/doc/$p.xml
           done
         '';
+      restageMan = pkgs: drv: drv.overrideAttrs (old: {
+        postInstall = (old.postInstall or "") + ''
+          mkdir -p "$bin/share/man/man1"
+          cp ${(mkMan pkgs.buildPackages)}/share/man/man1/xmllint.1    "$bin/share/man/man1/xmllint.1"
+          cp ${(mkMan pkgs.buildPackages)}/share/man/man1/xmlcatalog.1 "$bin/share/man/man1/xmlcatalog.1"
+        '';
+      });
     in
     ulib.mkStandaloneFlake {
       inherit self;
@@ -52,10 +57,8 @@
       smokePattern = "libxml version 215";
 
       # Build via the unpin-llvm engine + emit a bitcode multicall module. On
-      # BOTH Linux and darwin (mac-on-mac) the engine compiles pkgsStatic.libxml2
-      # (xmllint + xmlcatalog) to bitcode and the standalone self-folds them into
-      # one `xmllint` binary. ./multicall.nix's objcopy fold can't run on the
-      # engine's -flto bitcode objects, so it's windows-only now (windowsBuild).
+      # every target the engine compiles libxml2 (xmllint + xmlcatalog) to
+      # bitcode and the standalone self-folds them into one `xmllint` binary.
       # Pure C — no requires.cxx. pkgsAttr=libxml2 (name ≠ attr); the canonical
       # bare smoke (`xmllint --version`) is itself an applet, so no defaultProgram
       # needed. Man is restaged onto the engine build so withMan embeds it (nixpkgs
@@ -63,19 +66,14 @@
       pkgsAttr = "libxml2";
       engine = "unpin-llvm";
       multicall = {
+        windows = true;
         programs = [ { name = "xmllint"; } { name = "xmlcatalog"; } ];
       };
-      # engine path (Linux + darwin): apps → bitcode → selfFold. Restage the
-      # generated man pages into the build's share/man (libxml2 multi-output: bin
-      # holds the CLIs).
+      # Restage the generated man pages into the build's share/man (libxml2 is
+      # multi-output: `bin` holds the CLIs).
       build = pkgs:
-        pkgs.pkgsStatic.libxml2.overrideAttrs (old: {
-          postInstall = (old.postInstall or "") + ''
-            mkdir -p "$bin/share/man/man1"
-            cp ${(mkMan pkgs.buildPackages)}/share/man/man1/xmllint.1    "$bin/share/man/man1/xmllint.1"
-            cp ${(mkMan pkgs.buildPackages)}/share/man/man1/xmlcatalog.1 "$bin/share/man/man1/xmlcatalog.1"
-          '';
-        } // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+        (restageMan pkgs pkgs.pkgsStatic.libxml2).overrideAttrs (old:
+          pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           # mkStandaloneFlake's filterEnableStaticOnDarwin strips libxml2's Nix-level
           # `--disable-shared` (so `--enable-static` can't become LDFLAGS=-static and
           # break the libSystem probe). Push it back via the bash configureFlagsArray
@@ -86,8 +84,6 @@
             configureFlagsArray+=("--disable-shared")
           '';
         });
-      windowsBuild = pkgs:
-        import ./multicall.nix { lib = pkgs.lib // ulib; }
-          { inherit pkgs; xmlMan = mkMan pkgs.buildPackages; xml = (ulib.mingwStaticCross pkgs).libxml2; };
+      windowsBuild = pkgs: restageMan pkgs (ulib.mingwStaticCross pkgs).libxml2;
     };
 }
