@@ -72,7 +72,23 @@
       # Restage the generated man pages into the build's share/man (libxml2 is
       # multi-output: `bin` holds the CLIs).
       build = pkgs:
-        (restageMan pkgs pkgs.pkgsStatic.libxml2).overrideAttrs (old:
+        let base = restageMan pkgs pkgs.pkgsStatic.libxml2; in
+        base.overrideAttrs (old: {
+          doCheck = base.stdenv.buildPlatform.canExecute base.stdenv.hostPlatform;
+          # The suite passes whole (3879 regression tests + 49 recursion tests,
+          # no errors) except `testModule`, which dlopen()s a built .so to prove
+          # the module loader works. There is no .so in a static build and
+          # never will be, so it fails "Failed to open module" — a test of a
+          # feature this package does not ship. Drop that one line from
+          # check-local; everything else in it runs.
+          # (nixpkgs carries libxml2's phase hooks as LISTS, not strings.)
+          preCheck = (old.preCheck or [ ]) ++ [
+            ''
+              substituteInPlace Makefile \
+                --replace-fail '$(CHECKER) ./testModule$(EXEEXT)' 'true'
+            ''
+          ];
+        } //
           pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           # mkStandaloneFlake's filterEnableStaticOnDarwin strips libxml2's Nix-level
           # `--disable-shared` (so `--enable-static` can't become LDFLAGS=-static and
