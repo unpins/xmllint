@@ -17,7 +17,7 @@ Run a program with [unpin](https://github.com/unpins/unpin):
 
 ```bash
 unpin xmllint --noout --schema s.xsd doc.xml
-unpin xmllint xmlcatalog --version
+unpin xmllint --unpin-program=xmlcatalog catalog.xml "-//X//DTD Y//EN"
 ```
 
 To install the programs onto your PATH:
