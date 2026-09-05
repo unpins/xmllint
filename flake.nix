@@ -74,6 +74,17 @@
       build = pkgs:
         let base = restageMan pkgs pkgs.pkgsStatic.libxml2; in
         base.overrideAttrs (old: {
+          # nixpkgs builds libxml2 --without-zlib (upstream's own default), so
+          # `xmllint doc.xml.gz` failed with "Start tag expected" while every
+          # distribution build reads it. zlib is the only real feature 2.15
+          # still gates behind a flag -- HTTP is removed upstream (--with-http
+          # only restores ABI stubs) and lzma is gone entirely -- so this is
+          # what "no upstream features disabled" costs here.
+          # (The store-path catalog default is retargeted set-wide in
+          # nix-lib/native-overlay/libxml2.nix, since chafa/avif/biber carried
+          # it through the library too.)
+          configureFlags = (old.configureFlags or [ ]) ++ [ "--with-zlib" ];
+          buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.pkgsStatic.zlib ];
           doCheck = base.stdenv.buildPlatform.canExecute base.stdenv.hostPlatform;
           # The suite passes whole (3879 regression tests + 49 recursion tests,
           # no errors) except `testModule`, which dlopen()s a built .so to prove
@@ -100,6 +111,13 @@
             configureFlagsArray+=("--disable-shared")
           '';
         });
-      windowsBuild = pkgs: restageMan pkgs (ulib.mingwStaticCross pkgs).libxml2;
+      # zlib as above; the sysconfdir retarget comes from
+      # nix-lib/mingw-overlay/libxml2.nix.
+      windowsBuild = pkgs:
+        let mw = ulib.mingwStaticCross pkgs; in
+        (restageMan pkgs mw.libxml2).overrideAttrs (old: {
+          configureFlags = (old.configureFlags or [ ]) ++ [ "--with-zlib" ];
+          buildInputs = (old.buildInputs or [ ]) ++ [ mw.zlib ];
+        });
     };
 }

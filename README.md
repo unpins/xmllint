@@ -60,7 +60,8 @@ The [Releases](https://github.com/unpins/xmllint/releases) page has standalone b
 
 ## Build notes
 
-- **Multicall:** one binary dispatches on `argv[0]` — `xmllint` (canonical) and `xmlcatalog`. `libxml2` is linked in statically.
-- **Man pages:** generated from libxml2's DocBook sources (nixpkgs ships none) and embedded on every platform.
-- **Windows:** `mingw` cross, single `.exe`, no companion DLLs.
+- **Man pages:** generated from libxml2's DocBook sources (which ship as unbuilt DocBook XML) and embedded on every platform.
+- **Windows:** a single `.exe`, no companion DLLs.
+- **Compressed input:** `xmllint` reads gzipped XML (`doc.xml.gz`), matching a distribution build. HTTP and lzma support were removed from libxml2 upstream and are gone everywhere, including here.
+- **Catalogs:** the default XML catalog is `/etc/xml/catalog` (`C:/etc/xml/catalog` on Windows), the same place a distribution puts it. `XML_CATALOG_FILES` overrides it.
 - **No upstream features disabled** on any platform.
