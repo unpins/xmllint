@@ -9,7 +9,7 @@ The [libxml2](https://gitlab.gnome.org/GNOME/libxml2) command-line programs — 
 
 Part of the [unpins](https://unpins.org) catalog; install it with [`unpin`](https://github.com/unpins/unpin): `unpin install xmllint`.
 
-Both programs share one binary with `libxml2` linked in statically.
+Both programs share one binary with `libxml2` built in.
 
 ## Usage
 
@@ -37,7 +37,7 @@ unpin install xmllint
 
 ## Man pages
 
-`xmllint.1` and `xmlcatalog.1` are embedded in the binary — read with `unpin man xmllint` / `unpin man xmlcatalog`.
+`xmllint.1` and `xmlcatalog.1` are embedded in the binary — read with `unpin man xmllint` / `unpin man xmllint xmlcatalog`.
 
 ## Build locally
 
