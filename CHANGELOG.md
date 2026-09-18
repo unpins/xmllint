@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Updated to libxml2 2.15.3.
+
 ### Fixed
 
 - The README's `xmlcatalog` example ran `unpin xmllint xmlcatalog --version`,
