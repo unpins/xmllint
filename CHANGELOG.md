@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.15.4-1] - 2026-09-26
+
 ### Changed
 
 - Updated to libxml2 2.15.3.
