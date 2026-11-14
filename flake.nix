@@ -15,7 +15,8 @@
   # libxml2 is portable autotools C that cross-compiles cleanly.
   #
   # Man pages: libxml2 ships xmllint/xmlcatalog man as DocBook XML
-  # (doc/<tool>.xml) that nixpkgs never builds (no docbook toolchain). Generate
+  # (doc/<tool>.xml) that nixpkgs never builds (it passes --without-docs:
+  # generating them needs xsltproc, a cyclic dependency for libxml2). Generate
   # both on the build host (OS-independent text) and restage the same bytes into
   # every target's share/man (windows included — the generator runs on the
   # build host either way), so each build harvests its OWN man. No graft.
@@ -76,10 +77,10 @@
         base.overrideAttrs (old: {
           # nixpkgs builds libxml2 --without-zlib (upstream's own default), so
           # `xmllint doc.xml.gz` failed with "Start tag expected" while every
-          # distribution build reads it. zlib is the only real feature 2.15
-          # still gates behind a flag -- HTTP is removed upstream (--with-http
-          # only restores ABI stubs) and lzma is gone entirely -- so this is
-          # what "no upstream features disabled" costs here.
+          # distribution build reads it, so zlib is turned on. The other
+          # opt-in features (schematron, readline, history, icu) stay off, as
+          # upstream and nixpkgs ship them. HTTP is removed upstream
+          # (--with-http only restores ABI stubs) and lzma is gone entirely.
           # (The store-path catalog default is retargeted set-wide in
           # nix-lib/native-overlay/libxml2.nix, since chafa/avif/biber carried
           # it through the library too.)
