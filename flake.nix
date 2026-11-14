@@ -87,19 +87,9 @@
           configureFlags = (old.configureFlags or [ ]) ++ [ "--with-zlib" ];
           buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.pkgsStatic.zlib ];
           doCheck = base.stdenv.buildPlatform.canExecute base.stdenv.hostPlatform;
-          # The suite passes whole (3879 regression tests + 49 recursion tests,
-          # no errors) except `testModule`, which dlopen()s a built .so to prove
-          # the module loader works. There is no .so in a static build and
-          # never will be, so it fails "Failed to open module" — a test of a
-          # feature this package does not ship. Drop that one line from
-          # check-local; everything else in it runs.
-          # (nixpkgs carries libxml2's phase hooks as LISTS, not strings.)
-          preCheck = (old.preCheck or [ ]) ++ [
-            ''
-              substituteInPlace Makefile \
-                --replace-fail '$(CHECKER) ./testModule$(EXEEXT)' 'true'
-            ''
-          ];
+          # The suite passes whole except testModule, which dlopen()s a .so a
+          # static build cannot have; the patch skips that one line.
+          patches = (old.patches or [ ]) ++ [ ./patches/static-skip-testmodule.patch ];
         } //
           pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           # mkStandaloneFlake's filterEnableStaticOnDarwin strips libxml2's Nix-level
