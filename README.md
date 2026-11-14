@@ -64,4 +64,4 @@ The [Releases](https://github.com/unpins/xmllint/releases) page has standalone b
 - **Windows:** built with mingw-w64.
 - **Compressed input:** `xmllint` reads gzipped XML (`doc.xml.gz`), matching a distribution build. HTTP and lzma support were removed from libxml2 upstream and are gone everywhere, including here.
 - **Catalogs:** the default XML catalog is `/etc/xml/catalog` (`C:/etc/xml/catalog` on Windows), the same place a distribution puts it. `XML_CATALOG_FILES` overrides it.
-- **No upstream features disabled** on any platform.
+- **Not included** (opt-in upstream, and nixpkgs leaves them off): Schematron (`--schematron`); readline and history, so `xmllint --shell` has no line editing or history; ICU, so encodings are converted through iconv only.
